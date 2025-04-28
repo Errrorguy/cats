@@ -1,0 +1,185 @@
+-- LOCAL SCRIPT (StarterGui → ScreenGui)
+
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+
+-- 🐱 Build Cat Model
+local function createCatModel()
+    local cat = Instance.new("Model")
+    cat.Name = "Cat"
+
+    -- Body
+    local body = Instance.new("Part")
+    body.Name = "Body"
+    body.Size = Vector3.new(2, 1, 4)
+    body.Position = Vector3.new(0, 5, 0)
+    body.Color = Color3.fromRGB(0, 0, 0)
+    body.Material = Enum.Material.SmoothPlastic
+    body.Anchored = false
+    body.Parent = cat
+
+    -- Head
+    local head = Instance.new("Part")
+    head.Name = "Head"
+    head.Size = Vector3.new(1.5, 1.5, 1.5)
+    head.Position = body.Position + Vector3.new(0, 1.25, -2)
+    head.Color = Color3.fromRGB(0, 0, 0)
+    head.Material = Enum.Material.SmoothPlastic
+    head.Anchored = false
+    head.Parent = cat
+
+    -- Eyes
+    local leftEye = Instance.new("Part")
+    leftEye.Name = "LeftEye"
+    leftEye.Size = Vector3.new(0.3, 0.3, 0.3)
+    leftEye.Position = head.Position + Vector3.new(-0.3, 0.2, -0.75)
+    leftEye.Color = Color3.fromRGB(255, 255, 255)
+    leftEye.Material = Enum.Material.SmoothPlastic
+    leftEye.Anchored = false
+    leftEye.Parent = cat
+
+    local rightEye = Instance.new("Part")
+    rightEye.Name = "RightEye"
+    rightEye.Size = Vector3.new(0.3, 0.3, 0.3)
+    rightEye.Position = head.Position + Vector3.new(0.3, 0.2, -0.75)
+    rightEye.Color = Color3.fromRGB(255, 255, 255)
+    rightEye.Material = Enum.Material.SmoothPlastic
+    rightEye.Anchored = false
+    rightEye.Parent = cat
+
+    -- Ears (bigger now!)
+    local function createEar(name, offsetX)
+        local ear = Instance.new("Part")
+        ear.Name = name
+        ear.Size = Vector3.new(0.5, 0.6, 0.5) -- Bigger ears!
+        ear.Position = head.Position + Vector3.new(offsetX, 0.8, 0)
+        ear.Color = Color3.fromRGB(0, 0, 0)
+        ear.Material = Enum.Material.SmoothPlastic
+        ear.Anchored = false
+        ear.Parent = cat
+        return ear
+    end
+
+    local leftEar = createEar("LeftEar", -0.4)
+    local rightEar = createEar("RightEar", 0.4)
+
+    -- Tail
+    local tail = Instance.new("Part")
+    tail.Name = "Tail"
+    tail.Size = Vector3.new(0.3, 1.5, 0.3)
+    tail.Position = body.Position + Vector3.new(0, 0.5, 2)
+    tail.Color = Color3.fromRGB(0, 0, 0)
+    tail.Material = Enum.Material.SmoothPlastic
+    tail.Anchored = false
+    tail.Parent = cat
+
+    -- Legs
+    local function createLeg(name, offsetX, offsetZ)
+        local leg = Instance.new("Part")
+        leg.Name = name
+        leg.Size = Vector3.new(0.4, 1, 0.4)
+        leg.Position = body.Position + Vector3.new(offsetX, -1, offsetZ)
+        leg.Color = Color3.fromRGB(0, 0, 0)
+        leg.Material = Enum.Material.SmoothPlastic
+        leg.Anchored = false
+        leg.Parent = cat
+        return leg
+    end
+
+    createLeg("FrontLeftLeg", -0.7, -1.5)
+    createLeg("FrontRightLeg", 0.7, -1.5)
+    createLeg("BackLeftLeg", -0.7, 1.5)
+    createLeg("BackRightLeg", 0.7, 1.5)
+
+    -- Weld everything
+    local function weldParts(part0, part1)
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = part0
+        weld.Part1 = part1
+        weld.Parent = part0
+    end
+
+    for _, part in ipairs(cat:GetChildren()) do
+        if part:IsA("Part") and part ~= body then
+            weldParts(body, part)
+        end
+    end
+
+    cat.PrimaryPart = body
+    cat.Parent = replicatedStorage
+
+    return cat
+end
+
+-- 📦 Create Cat Model if doesn't exist
+if not replicatedStorage:FindFirstChild("Cat") then
+    createCatModel()
+end
+
+-- 🖥️ GUI Setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CatSpawnerUI"
+screenGui.Parent = playerGui
+
+local draggableFrame = Instance.new("Frame")
+draggableFrame.Name = "DraggableFrame"
+draggableFrame.Size = UDim2.new(0.2, 0, 0.1, 0)
+draggableFrame.Position = UDim2.new(0.4, 0, 0.45, 0)
+draggableFrame.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+draggableFrame.Active = true
+draggableFrame.Draggable = true
+draggableFrame.Parent = screenGui
+
+local catButton = Instance.new("TextButton")
+catButton.Name = "SpawnCatButton"
+catButton.Size = UDim2.new(0.8, 0, 0.8, 0)
+catButton.Position = UDim2.new(0.1, 0, 0.1, 0)
+catButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+catButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+catButton.Font = Enum.Font.GothamBold
+catButton.TextScaled = true
+catButton.Text = "Spawn Cat"
+catButton.Parent = draggableFrame
+
+-- 🐾 Spawn Cat and Tail Wagging
+catButton.MouseButton1Click:Connect(function()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if rootPart then
+        local catClone = replicatedStorage.Cat:Clone()
+        catClone.Parent = workspace
+        catClone:SetPrimaryPartCFrame(rootPart.CFrame * CFrame.new(0, 0, -5))
+
+        -- 🐱 Play Meow sound
+        local meowSound = Instance.new("Sound")
+        meowSound.SoundId = "rbxassetid://7079272452"
+        meowSound.Volume = 1
+        meowSound.Parent = catClone.PrimaryPart
+        meowSound:Play()
+
+        -- 🎥 Tail Wagging
+        local tail = catClone:FindFirstChild("Tail")
+        if tail then
+            local originalCFrame = tail.CFrame
+
+            task.spawn(function()
+                while tail and tail.Parent do
+                    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+
+                    local goal1 = {CFrame = originalCFrame * CFrame.Angles(0, math.rad(20), 0)}
+                    local goal2 = {CFrame = originalCFrame * CFrame.Angles(0, math.rad(-20), 0)}
+
+                    local tween1 = TweenService:Create(tail, tweenInfo, goal1)
+                    local tween2 = TweenService:Create(tail, tweenInfo, goal2)
+
+                    tween1:Play()
+                    tween1.Completed:Wait()
+                    tween2:Play()
+                    tween2.Completed:Wait()
+                end
+            end)
+        end
+    end
+end)
